@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose";
-import { hash } from "bcryptjs";
+import { hash, compare } from "bcryptjs";
 import { sign } from "jsonwebtoken";
 
 const UserSchema = new Schema(
@@ -14,7 +14,6 @@ const UserSchema = new Schema(
   },
   { timestamps: true }
 );
-
 UserSchema.pre("save", async function (next) {
   if (this.isModified("password")) {
     this.password = await hash(this.password, 10);
@@ -22,11 +21,14 @@ UserSchema.pre("save", async function (next) {
   }
   return next();
 });
-
 UserSchema.methods.generateJWT = async function () {
   return await sign({ id: this._id }, process.env.JWT_SECRET, {
     expiresIn: "30d",
   });
+};
+
+UserSchema.methods.comparePassword = async function (enteredPassword) {
+  return await compare(enteredPassword, this.password);
 };
 
 const User = model("User", UserSchema);
